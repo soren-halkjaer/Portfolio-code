@@ -1,0 +1,305 @@
+# Investment Portfolio Tracker - Jupyter Notebook
+# Complete working version with benchmark fetching
+
+# Cell 1: Import Libraries
+import pandas as pd
+import numpy as np
+import yfinance as yf
+import requests
+from datetime import datetime, timedelta
+import os
+import matplotlib.pyplot as plt
+import warnings
+from jinja2 import Environment, PackageLoader
+warnings.filterwarnings('ignore')
+
+print("✓ Libraries imported successfully")
+
+# Cell 2: Configuration
+TRANSACTIONS_FILE = 'transactions.csv'
+PORTFOLIO_CONFIG_FILE = 'portfolio_config.csv'
+BASE_CURRENCY = 'DKK'
+BENCHMARK_TICKER = '^GSPC'  # Change to ^OMXC25 for Danish market
+RISK_FREE_RATE = 0.03
+
+print(f"Portfolio Configuration:")
+print(f"  Base Currency: {BASE_CURRENCY}")
+print(f"  Benchmark: {BENCHMARK_TICKER}")
+print(f"  Risk-Free Rate: {RISK_FREE_RATE*100}%")
+
+# Cell 3: Helper Functions
+def load_portfolio_config():
+    if os.path.exists(PORTFOLIO_CONFIG_FILE):
+        df = pd.read_csv(PORTFOLIO_CONFIG_FILE)
+        return df.iloc[0].to_dict()
+    return None
+
+def save_portfolio_config(start_date, initial_deposit, currency=BASE_CURRENCY):
+    config_df = pd.DataFrame({
+        'start_date': [start_date],
+        'initial_deposit': [initial_deposit],
+        'currency': [currency]
+    })
+    config_df.to_csv(PORTFOLIO_CONFIG_FILE, index=False)
+    print(f"✓ Portfolio config saved")
+
+def load_transactions():
+    if os.path.exists(TRANSACTIONS_FILE):
+        return pd.read_csv(TRANSACTIONS_FILE)
+    return pd.DataFrame(columns=['date', 'ticker', 'action', 'quantity', 'price', 'currency', 'dividend_amount', 'transaction_fee', 'fx_fee'])
+
+def save_transactions(df):
+    df.to_csv(TRANSACTIONS_FILE, index=False)
+
+def get_exchange_rate(from_currency, to_currency=BASE_CURRENCY):
+    if from_currency == to_currency:
+        return 1.0
+    try:
+        url = f"https://api.exchangerate-api.com/v4/latest/{from_currency}"
+        response = requests.get(url, timeout=5)
+        return response.json()['rates'].get(to_currency, 1.0)
+    except:
+        fallback_rates = {'USD': 7.0, 'EUR': 7.45, 'GBP': 8.7, 'DKK': 1.0}
+        return fallback_rates.get(from_currency, 1.0)
+
+def get_historical_prices(tickers, start_date):
+    all_prices = {}
+    for ticker in tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            hist = stock.history(start=start_date)
+            if not hist.empty:
+                all_prices[ticker] = hist['Close']
+                print(f"  ✓ {ticker}: {len(hist)} days")
+        except Exception as e:
+            print(f"  ✗ {ticker}: {e}")
+    return all_prices
+
+def calculate_holdings_at_date(transactions, target_date):
+    holdings = {}
+    trans_to_date = transactions[pd.to_datetime(transactions['date']) <= pd.to_datetime(target_date)]
+    
+    for _, row in trans_to_date.iterrows():
+        if row['action'] in ['buy', 'sell']:
+            ticker = row['ticker']
+            if ticker not in holdings:
+                holdings[ticker] = {'quantity': 0, 'total_cost': 0, 'currency': row['currency']}
+            
+            if row['action'] == 'buy':
+                holdings[ticker]['quantity'] += row['quantity']
+                holdings[ticker]['total_cost'] += row['quantity'] * row['price']
+            elif row['action'] == 'sell':
+                holdings[ticker]['quantity'] -= row['quantity']
+                holdings[ticker]['total_cost'] -= row['quantity'] * row['price']
+    
+    return {k: v for k, v in holdings.items() if v['quantity'] > 0}
+
+def calculate_portfolio_metrics(daily_returns, benchmark_returns, risk_free_rate=RISK_FREE_RATE):
+    aligned_data = pd.DataFrame({
+        'portfolio': daily_returns,
+        'benchmark': benchmark_returns
+    }).dropna()
+    
+    if len(aligned_data) < 30:
+        return None, None, None, None
+    
+    p_ret = aligned_data['portfolio']
+    b_ret = aligned_data['benchmark']
+    
+    covariance = p_ret.cov(b_ret)
+    beta = covariance / b_ret.var() if b_ret.var() != 0 else 0
+    
+    p_ret_annual = p_ret.mean() * 252
+    b_ret_annual = b_ret.mean() * 252
+    alpha = p_ret_annual - (risk_free_rate + beta * (b_ret_annual - risk_free_rate))
+    
+    excess_ret = p_ret - (risk_free_rate / 252)
+    sharpe = (excess_ret.mean() / excess_ret.std()) * np.sqrt(252) if excess_ret.std() != 0 else 0
+    
+    correlation = p_ret.corr(b_ret)
+    
+    return alpha, beta, sharpe, correlation
+
+print("✓ Functions loaded")
+
+# Cell 4: Create Portfolio
+start_date = "2024-01-01"
+initial_deposit = 100000
+currency = "DKK"
+save_portfolio_config(start_date, initial_deposit, currency)
+
+# Cell 5: Load Config
+portfolio_config = load_portfolio_config()
+print(f"Start: {portfolio_config['start_date']}, Deposit: {portfolio_config['initial_deposit']} {portfolio_config['currency']}")
+
+# Cell 6: Load Transactions
+transactions = load_transactions()
+print(f"Loaded {len(transactions)} transactions")
+
+# Cell 12: Daily Development with Benchmark
+if portfolio_config is None:
+    print("Create portfolio first (Cell 4)")
+elif transactions.empty:
+    print("No transactions")
+else:
+    print("Calculating daily portfolio development...\n")
+    
+    holdings = calculate_holdings_at_date(transactions, datetime.now().strftime('%Y-%m-%d'))
+    
+    if len(holdings) == 0:
+        print("No holdings found")
+    else:
+        tickers = list(holdings.keys())
+        
+        start_date = pd.to_datetime(portfolio_config['start_date'])
+        end_date = pd.to_datetime(datetime.now().strftime('%Y-%m-%d'))
+        
+        print("Fetching historical prices...")
+        historical_prices = get_historical_prices(tickers, start_date)
+        
+        date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+        daily_values = []
+        
+        for current_date in date_range:
+            date_str = current_date.strftime('%Y-%m-%d')
+            current_date_tz = current_date.tz_localize('America/New_York')
+            
+            holdings_at_date = calculate_holdings_at_date(transactions, date_str)
+            stock_value = 0
+            
+            for ticker, holding in holdings_at_date.items():
+                if ticker in historical_prices and historical_prices[ticker] is not None:
+                    ticker_prices = historical_prices[ticker]
+                    available_dates = ticker_prices.index[ticker_prices.index <= current_date_tz]
+                    
+                    if len(available_dates) > 0:
+                        price = ticker_prices[available_dates[-1]]
+                        rate = get_exchange_rate(holding['currency'])
+                        stock_value += holding['quantity'] * price * rate
+            
+            # Calculate cash
+            trans_to_date = transactions[pd.to_datetime(transactions['date']) <= current_date]
+            rate = get_exchange_rate(portfolio_config['currency'])
+            cash = portfolio_config['initial_deposit'] * rate
+            
+            for _, row in trans_to_date.iterrows():
+                trans_rate = get_exchange_rate(row['currency'])
+                t_fee = row.get('transaction_fee', 0) if pd.notna(row.get('transaction_fee', 0)) else 0
+                f_fee = row.get('fx_fee', 0) if pd.notna(row.get('fx_fee', 0)) else 0
+                
+                if row['action'] == 'buy':
+                    cash -= row['quantity'] * row['price'] * trans_rate + t_fee + f_fee
+                elif row['action'] == 'sell':
+                    cash += row['quantity'] * row['price'] * trans_rate - t_fee - f_fee
+                elif row['action'] == 'dividend':
+                    div_amt = row.get('dividend_amount', 0)
+                    if pd.notna(div_amt):
+                        cash += div_amt * trans_rate
+            
+            daily_values.append({
+                'date': current_date,
+                'stock_value': stock_value,
+                'cash': cash,
+                'total_value': stock_value + cash
+            })
+        
+        daily_df = pd.DataFrame(daily_values)
+        print(f"\n✓ Calculated {len(daily_df)} days of data")
+        
+        # === CALCULATE RETURNS ===
+        print("\n" + "="*80)
+        print("CALCULATING DAILY RETURNS")
+        print("="*80)
+        daily_df['daily_return'] = daily_df['total_value'].pct_change()
+        print(f"✓ Returns calculated. Columns: {list(daily_df.columns)}")
+        
+        # === FETCH BENCHMARK ===
+        print("\n" + "="*80)
+        print(f"FETCHING BENCHMARK: {BENCHMARK_TICKER}")
+        print("="*80)
+        
+        try:
+            print(f"Downloading from Yahoo Finance...")
+            benchmark = yf.Ticker(BENCHMARK_TICKER)
+            benchmark_hist = benchmark.history(start=start_date, end=end_date)
+            
+            print(f"✓ Downloaded {len(benchmark_hist)} days of benchmark data")
+            
+            if len(benchmark_hist) > 0:
+                benchmark_returns = benchmark_hist['Close'].pct_change()
+                
+                if benchmark_returns.index.tz is not None:
+                    benchmark_returns.index = benchmark_returns.index.tz_localize(None)
+                
+                daily_df['date'] = pd.to_datetime(daily_df['date'])
+                daily_df = daily_df.set_index('date')
+                daily_df['benchmark_return'] = benchmark_returns
+                daily_df = daily_df.reset_index()
+                
+                print(f"✓ BENCHMARK MERGED!")
+                print(f"✓ Final columns: {list(daily_df.columns)}")
+            else:
+                print(f"⚠ No benchmark data received")
+        except Exception as e:
+            print(f"⚠ Benchmark error: {e}")
+        
+        # === PLOTS ===
+        print("\n" + "="*80)
+        print("GENERATING CHARTS")
+        print("="*80)
+        
+        rate = get_exchange_rate(portfolio_config['currency'])
+        initial_deposit_dkk = portfolio_config['initial_deposit'] * rate
+        
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 10))
+        
+        ax1.plot(daily_df['date'], daily_df['total_value'], linewidth=2.5, 
+                label='Portfolio Value', color='#10b981')
+        ax1.axhline(y=initial_deposit_dkk, color='gray', linestyle='--', linewidth=2, label='Initial Deposit')
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel(f'Value ({BASE_CURRENCY})')
+        ax1.set_title('Daily Portfolio Value')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        ax1.tick_params(axis='x', rotation=45)
+        
+        ax2.fill_between(daily_df['date'], 0, daily_df['stock_value'], 
+                        label='Stocks', alpha=0.7, color='#3b82f6')
+        ax2.fill_between(daily_df['date'], daily_df['stock_value'], 
+                        daily_df['total_value'], label='Cash', alpha=0.7, color='#10b981')
+        ax2.set_xlabel('Date')
+        ax2.set_ylabel(f'Value ({BASE_CURRENCY})')
+        ax2.set_title('Portfolio Composition')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        ax2.tick_params(axis='x', rotation=45)
+        
+        plt.tight_layout()
+        plt.show()
+        
+        print("\n✓ Charts completed")
+
+# Cell 13: Risk Metrics
+if 'daily_df' not in locals():
+    print("Run Cell 12 first")
+elif 'benchmark_return' not in daily_df.columns:
+    print("No benchmark data available - Cell 12 had issues")
+else:
+    print("Calculating risk metrics...\n")
+    
+    alpha, beta, sharpe, corr = calculate_portfolio_metrics(
+        daily_df['daily_return'].dropna(),
+        daily_df['benchmark_return'].dropna()
+    )
+    
+    if alpha is not None:
+        print(f"{'='*60}")
+        print(f"RISK METRICS")
+        print(f"{'='*60}")
+        print(f"Alpha:      {alpha*100:>8.2f}%")
+        print(f"Beta:       {beta:>8.2f}")
+        print(f"Sharpe:     {sharpe:>8.2f}")
+        print(f"Correlation:{corr:>8.2f}")
+        print(f"{'='*60}")
+    else:
+        print("Not enough data (need 30+ days)")

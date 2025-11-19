@@ -1,0 +1,3 @@
+date,ticker,action,quantity,price,currency,dividend_amount
+2025-06-25,AAPL,buy,100.0,243.0,USD,
+2025-07-10,MSFT,buy,10.0,150.0,USD,
