@@ -1,17 +1,31 @@
 nordnet_stock_ID = {
-    'NOVO-B.CO': ["Novo Nordisk B", '16256554'],                                                        # 150
-    'PNDORA.CO': ["Pandora", '16101996'],                                                               # 70
-    'AOJ-B.CO':  ["A & O Johansen A/S", '384b908d-d07b-403e-837b-2a97900b23ee'],                        # 1117
-    'DNORD.CO':  ["D/S Norden", '4d7007dd-6cc8-42ce-81e6-5c08e3fc8e42'],                                # 425
-    'DEMANT.CO': ["Demant A/S", 'bf111a08-d545-449d-add7-4783af800242'],                                # 340
-    'RILBA.CO':  ["Ringkjøbing Landbobank", '538aba9e-5b66-45d0-a89e-17a6f4b33670'],                    # 75
-    'RBREW.CO':  ["Royal UNIBREW", 'a6250dce-69d7-40c8-a743-838f10a1861f'],                             # 180
-    'STG.CO':    ["Scandinavian Tobacco Group",'ca165109-7443-4e95-b173-ee27b62ce817'],                 # 950
-    'SCHO.CO':   ["Schouw & Co.", 'e99b41e6-0380-479d-b0a0-e524c62a1b1d'],                              # 170
-    'COLO-B.CO': ["Coloplast", '00a29a7b-107c-40b3-a852-e5f25045e9e6'],                                 # 115
-    'GMAB.CO':   ["Genmab", '2faa56a8-107b-432a-8dbe-48d2e5c3ffc1'],                                    # 53
-    'SPG.CO':    ["SP Group", '35f52d4c-8542-4874-a793-19b26646bfe8'],                                   # 219
+    'NOVO-B.CO': ["Novo Nordisk B", '16256554'],                                                        
+    'PNDORA.CO': ["Pandora", '16101996'],                                                               
+    'AOJ-B.CO':  ["A & O Johansen A/S", '384b908d-d07b-403e-837b-2a97900b23ee'],                        
+    'DNORD.CO':  ["D/S Norden", '4d7007dd-6cc8-42ce-81e6-5c08e3fc8e42'],                                
+    'DEMANT.CO': ["Demant A/S", 'bf111a08-d545-449d-add7-4783af800242'],                                
+    'RILBA.CO':  ["Ringkjøbing Landbobank", '538aba9e-5b66-45d0-a89e-17a6f4b33670'],                    
+    'RBREW.CO':  ["Royal UNIBREW", 'a6250dce-69d7-40c8-a743-838f10a1861f'],                             
+    'STG.CO':    ["Scandinavian Tobacco Group",'ca165109-7443-4e95-b173-ee27b62ce817'],                 
+    'SCHO.CO':   ["Schouw & Co.", 'e99b41e6-0380-479d-b0a0-e524c62a1b1d'],                              
+    'COLO-B.CO': ["Coloplast", '00a29a7b-107c-40b3-a852-e5f25045e9e6'],                                 
+    'GMAB.CO':   ["Genmab", '2faa56a8-107b-432a-8dbe-48d2e5c3ffc1'],                                    
+    'SPG.CO':    ["SP Group", '35f52d4c-8542-4874-a793-19b26646bfe8'],                                  
     'DSV.CO':    ["DSV A/S", '6cb53a21-593b-4cbb-8b77-01cfcd0714c0'],
     'UIE.CO':    ["UIE", 'f6b4731c-a01d-4499-88fa-94085595b1a7'],
-    'OMXC25GI':  ["OMXC25GI", "OMXC25GI"]                                                                          # 260
+    'OMXC25GI':  ["OMXC25GI", "OMXC25GI"],
+    'RR.L':      ["Rolls-Royce", "41664fda-0aa1-4d21-b9d2-38703ae0c136"],
+    'BAC':       ["Banc of America", "2dae2407-005e-4764-b6bc-a4621bcfeac3"],
+    'JPM':       ["JPM", "d615c8aa-585d-4b18-bcc1-ac8b3f1749d6"],
+    'MSFT':      ["Microsoft", "fb785bf8-fa34-4750-a55d-91e371239500"],
+    'SNOW':      ["Snowflake", "5a377e3d-076d-4bfb-ab14-5fd97a6ba0bf"],
+    'AMZN':      ["Amazon", "61f041e1-9188-43c6-91f1-1377ae6ec263"],
+    'GS':        ["Goldman Sachs", "36420b15-3b3d-4284-afde-4ac0588da409"],
+    'AXP':       ["American Express", "2618c709-1fa8-47ee-8e88-da95cc8a2b8e"],
+    'IAG.E':     ["International Consolidate Airlines Group", "b3640eb6-1482-410f-adf5-adfc31a864f9"],
+    'META':      ["Meta","756ad2db-f6e8-4cbf-a6d6-78df6852d7fc"], 
+    'AAPL':      ["Apple","bb244052-2ab4-47ed-96d5-9188ff4008a2"], 
+    'GOOG':      ["Google","672d2354-99d7-41b9-8017-24171887405a"], 
+    'NVDA':      ["Nvidia","99c43961-8eef-4c7a-9954-2fe31c47b70d"],
+    'NFLX':      ["Netflix","289479ae-3d8f-423a-a86f-1197666f06fb"]                                         
     }
